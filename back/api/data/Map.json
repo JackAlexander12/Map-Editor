@@ -1,16 +1,24 @@
 {
-    "map":{
-        "maxNeighborDistance":1500,
-        "nodes": [
-            {"x":1000, "y":1000, "code":10001000,
-            "directions":["North"]},
-            {"x":1000, "y":1900, "code":10001010,
-            "directions":["North"]},
-            {"x":1000, "y":2700, "code":10001020,
-            "directions":["North"]},
-            {"x":1000, "y":3500, "code":10001030,
-            "directions":["North"], "name":"CHRG", "charger":{"direction":"South"}
-        }
-        ]
-    }
+  "map": {
+    "maxNeighborDistance": 900,
+    "nodes": [
+      {
+        "x": 0,
+        "y": 0,
+        "code": 1
+      },
+      {
+        "x": 0,
+        "y": 800,
+        "code": 2
+      }
+    ],
+    "edges": [
+      {
+        "from": 1,
+        "to": 2,
+        "length": 800
+      }
+    ]
+  }
 }
