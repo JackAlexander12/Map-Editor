@@ -1,9 +1,21 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_PATH = path.join(__dirname, '..', 'api', 'data', 'map.json');
+const DATA_PATH = path.join(__dirname, '..', 'api', 'data', 'Map.json');
+
+function ensureFile() {
+  const dir = path.dirname(DATA_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(DATA_PATH)) {
+    fs.writeFileSync(
+      DATA_PATH,
+      JSON.stringify({ map: { maxNeighborDistance: 1500, nodes: [], edges: [] } }, null, 2)
+    );
+  }
+}
 
 function readMap() {
+  ensureFile();
   const raw = JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
   if (!raw.map) raw.map = {};
   if (!Array.isArray(raw.map.nodes)) raw.map.nodes = [];
@@ -13,6 +25,7 @@ function readMap() {
 }
 
 function writeMap(mapData) {
+  ensureFile();
   if (!mapData.map) mapData.map = {};
   if (!Array.isArray(mapData.map.nodes)) mapData.map.nodes = [];
   if (!Array.isArray(mapData.map.edges)) mapData.map.edges = [];

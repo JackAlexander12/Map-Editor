@@ -1,0 +1,6 @@
+node_modules
+npm-debug.log
+.git
+tests
+coverage
+.DS_Store
