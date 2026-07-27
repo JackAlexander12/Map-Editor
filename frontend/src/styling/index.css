@@ -27,7 +27,7 @@ html, body, #root {
   color: #ffffff;
 }
 .details-panel {
-  background-color: #f9f9fb;
+  background-color: rgba(249, 249, 251, 0.96);
 }
 
 .details-panel .label {

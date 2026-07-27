@@ -54,10 +54,41 @@ function revalidateIncidentEdgesOrThrow(data, nodeCode) {
   }
 }
 
+function revalidateIncidentEdgesAndPrune(data, nodeCode) {
+  const maxDist = data.map.maxNeighborDistance ?? 1500;
+  const kept = [];
+  const removed = [];
+
+  for (const e of data.map.edges || []) {
+    const touchesNode =
+      String(e.from) === String(nodeCode) || String(e.to) === String(nodeCode);
+
+    if (!touchesNode) {
+      kept.push(e);
+      continue;
+    }
+
+    try {
+      const ne = normalizeEdgeOrThrow(data, e.from, e.to, maxDist);
+      kept.push(ne);
+    } catch (err) {
+      removed.push({
+        from: e.from,
+        to: e.to,
+        error: String(err.message || err),
+      });
+    }
+  }
+
+  data.map.edges = kept;
+  return removed;
+}
+
 module.exports = {
   getNodeByCode,
   edgeLength,
   normalizeEdgeOrThrow,
   revalidateIncidentEdgesOrThrow,
+  revalidateIncidentEdgesAndPrune,
 };
 

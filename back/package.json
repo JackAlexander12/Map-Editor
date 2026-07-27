@@ -5,6 +5,10 @@
   "type": "commonjs",
   "scripts": {
     "start": "node server.js",
+    "server:start": "bash scripts/server-control.sh start",
+    "server:stop": "bash scripts/server-control.sh stop",
+    "server:restart": "bash scripts/server-control.sh restart",
+    "server:status": "bash scripts/server-control.sh status",
     "dev": "nodemon server.js",
     "test": "jest --runInBand",
     "test:watch": "jest --watch"

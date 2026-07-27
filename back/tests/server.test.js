@@ -2,6 +2,7 @@ jest.mock('../utils/fileUtils', () => {
   let store = {
     map: {
       maxNeighborDistance: 900,
+      bounds: { minX: 0, minY: 0, maxX: 10000, maxY: 6000 },
       nodes: [
         { x: 0, y: 0, code: 1 },
         { x: 0, y: 800, code: 2 }
@@ -36,6 +37,7 @@ afterAll(() => {
 const baselineMap = () => ({
   map: {
     maxNeighborDistance: 900,
+    bounds: { minX: 0, minY: 0, maxX: 10000, maxY: 6000 },
     nodes: [
       { x: 0, y: 0, code: 1 },
       { x: 0, y: 800, code: 2 }
@@ -60,6 +62,7 @@ describe('server routes', () => {
     expect(res.status).toBe(200);
     expect(res.body.map.nodes.length).toBe(2);
     expect(Array.isArray(res.body.map.edges)).toBe(true);
+    expect(res.body.map.bounds).toEqual({ minX: 0, minY: 0, maxX: 10000, maxY: 6000 });
   });
 
   test('GET /api/edges returns current edges array', async () => {
@@ -139,12 +142,14 @@ describe('server routes', () => {
     const patch = {
       map: {
         maxNeighborDistance: 2000,
+        bounds: { minX: 0, minY: 0, maxX: 12000, maxY: 7000 },
         nodes: [{ code: 2, x: 0, y: 900 }],
         edges: [{ from: 1, to: 2 }]
       }
     };
     const res = await request(app).patch('/api/map').send(patch);
     expect(res.status).toBe(200);
+    expect(res.body.map.bounds).toEqual({ minX: 0, minY: 0, maxX: 12000, maxY: 7000 });
 
     const e = __getMockMap().map.edges.find(
       (e) =>
@@ -152,6 +157,27 @@ describe('server routes', () => {
         (String(e.from) === '2' && String(e.to) === '1')
     );
     expect(e.length).toBe(900);
+    expect(__getMockMap().map.bounds).toEqual({ minX: 0, minY: 0, maxX: 12000, maxY: 7000 });
+  });
+
+  test('PATCH /api/map preserves existing bounds when omitted', async () => {
+    const res = await request(app).patch('/api/map').send({
+      map: { maxNeighborDistance: 1000, nodes: [] }
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.map.bounds).toEqual({ minX: 0, minY: 0, maxX: 10000, maxY: 6000 });
+  });
+
+  test('PATCH /api/map rejects invalid bounds', async () => {
+    const res = await request(app).patch('/api/map').send({
+      map: {
+        maxNeighborDistance: 1000,
+        bounds: { minX: 0, minY: 0, maxX: 5, maxY: 'bad' },
+        nodes: []
+      }
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/bounds\.maxY must be an integer/i);
   });
 
   test('PATCH /api/map recomputes existing edges and enforces lowered cap', async () => {
@@ -283,35 +309,65 @@ describe('server routes', () => {
   });
 });
 
-describe('PUT/PATCH /api/nodes/:code returns detailed _edgeValidation shape', () => {
-  test('PUT causes incident edge to exceed cap -> returns { error, edges:[{from,to,error}] }', async () => {
-    let res = await request(app).patch('/api/map').send({
-      map: { maxNeighborDistance: 700, nodes: [{ code: 2, x: 0, y: 700 }] }
-    });
-    expect(res.status).toBe(200);
+describe('map-changing routes return updated map state', () => {
+  test('PUT /api/map returns the replaced map including bounds and normalized edges', async () => {
+    const body = {
+      map: {
+        maxNeighborDistance: 1200,
+        bounds: { minX: 0, minY: 0, maxX: 22000, maxY: 9000 },
+        nodes: [
+          { x: 0, y: 0, code: 1 },
+          { x: 0, y: 1200, code: 2 }
+        ],
+        edges: [{ from: 1, to: 2 }]
+      }
+    };
 
-    res = await request(app).put('/api/nodes/2').send({ x: 0, y: 800, code: 2 });
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/invalidates existing edge/i);
-    expect(Array.isArray(res.body.edges)).toBe(true);
-    expect(res.body.edges[0]).toEqual(
-      expect.objectContaining({ from: 1, to: 2, error: expect.stringMatching(/exceeds/i) })
-    );
+    const res = await request(app).put('/api/map').send(body);
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.map.bounds).toEqual({ minX: 0, minY: 0, maxX: 22000, maxY: 9000 });
+    expect(res.body.map.edges).toEqual([{ from: 1, to: 2, length: 1200 }]);
   });
 
-  test('PATCH moves node to diagonal relative to its neighbor -> structured payload', async () => {
-    let res = await request(app).patch('/api/map').send({
-      map: { maxNeighborDistance: 5000, nodes: [] }
+  test('PATCH /api/map can update only bounds while preserving current nodes and edges', async () => {
+    const res = await request(app).patch('/api/map').send({
+      map: {
+        maxNeighborDistance: 900,
+        bounds: { minX: 0, minY: 0, maxX: 1500000, maxY: 150000 },
+        nodes: []
+      }
     });
     expect(res.status).toBe(200);
+    expect(res.body.map.bounds).toEqual({ minX: 0, minY: 0, maxX: 1500000, maxY: 150000 });
+    expect(res.body.map.nodes).toHaveLength(2);
+    expect(res.body.map.edges).toEqual([{ from: 1, to: 2, length: 800 }]);
+  });
 
-    res = await request(app).patch('/api/nodes/2').send({ x: 100, y: 800 });
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/invalidates existing edge/i);
-    expect(Array.isArray(res.body.edges)).toBe(true);
-    expect(res.body.edges[0]).toEqual(
+  test('PATCH /api/nodes/:code keeps the move and prunes invalid incident edges', async () => {
+    const res = await request(app).patch('/api/nodes/2').send({ x: 100, y: 800 });
+    expect(res.status).toBe(200);
+    expect(res.body.node).toEqual(expect.objectContaining({ code: 2, x: 100, y: 800 }));
+    expect(res.body.removedEdges).toEqual([
       expect.objectContaining({ from: 1, to: 2, error: expect.stringMatching(/diagonal/i) })
+    ]);
+    expect(res.body.edges).toEqual([]);
+
+    const after = __getMockMap();
+    expect(after.map.nodes.find((n) => String(n.code) === '2')).toEqual(
+      expect.objectContaining({ x: 100, y: 800 })
     );
+    expect(after.map.edges).toEqual([]);
+  });
+
+  test('PUT /api/nodes/:code prunes over-cap incident edges and returns removedEdges', async () => {
+    const res = await request(app).put('/api/nodes/2').send({ x: 0, y: 2000, code: 2 });
+    expect(res.status).toBe(200);
+    expect(res.body.node).toEqual(expect.objectContaining({ code: 2, x: 0, y: 2000 }));
+    expect(res.body.removedEdges).toEqual([
+      expect.objectContaining({ from: 1, to: 2, error: expect.stringMatching(/exceeds/i) })
+    ]);
+    expect(res.body.edges).toEqual([]);
   });
 });
 

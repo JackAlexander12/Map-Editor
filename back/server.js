@@ -1,17 +1,34 @@
 const express = require('express');
 const cors = require('cors');
 
-const { readMap, writeMap } = require('./utils/fileUtils');
+const { DEFAULT_BOUNDS, readMap, writeMap, normalizeBounds } = require('./utils/fileUtils');
 const { asKey, findIndexByCode } = require('./utils/nodeUtils');
 const {
+  validateBoundsShape,
   validateNodeShape,
   validateWholeMapShape,
 } = require('./utils/validateUtils');
-const { normalizeEdgeOrThrow, revalidateIncidentEdgesOrThrow } = require('./utils/edgeUtils');
+const {
+  normalizeEdgeOrThrow,
+  revalidateIncidentEdgesOrThrow,
+  revalidateIncidentEdgesAndPrune,
+} = require('./utils/edgeUtils');
 
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors({
+  origin(origin, callback) {
+    const isLocalOrigin =
+      typeof origin === 'string' &&
+      /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+
+    if (!origin || isLocalOrigin) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error(`CORS blocked for origin ${origin}`));
+  },
+}));
 app.use(express.json());
 
 // checks for server working
@@ -21,6 +38,7 @@ app.get('/works', (_req, res) => res.json({ ok: true }));
 app.get('/api/map', (_req, res) => {
   try {
     const mapData = readMap();
+    mapData.map.bounds = normalizeBounds(mapData.map.bounds);
     if (!Array.isArray(mapData.map.edges)) mapData.map.edges = [];
     res.json(mapData);
   } catch (err) {
@@ -44,6 +62,7 @@ app.put('/api/map', (req, res) => {
     }
 
     if (!Array.isArray(incoming.map.edges)) incoming.map.edges = [];
+    incoming.map.bounds = normalizeBounds(incoming.map.bounds);
 
     const seen = new Set();
     const normalized = [];
@@ -64,7 +83,7 @@ app.put('/api/map', (req, res) => {
     incoming.map.edges = normalized;
 
     writeMap(incoming);
-    res.json({ ok: true });
+    res.json({ ok: true, map: incoming.map });
   } catch (err) {
     console.error(err);
     res.status(400).json({ error: String(err.message || err) });
@@ -91,6 +110,11 @@ app.patch('/api/map', (req, res) => {
     // loads current map and checks if edges exists
     const data = readMap();
     if (!Array.isArray(data.map.edges)) data.map.edges = [];
+    if (body.map.bounds != null) {
+      const boundsErr = validateBoundsShape(body.map.bounds);
+      if (boundsErr) return res.status(400).json({ error: boundsErr });
+    }
+    const nextBounds = normalizeBounds(body.map.bounds || data.map.bounds || DEFAULT_BOUNDS);
 
     // index existing nodes by their code
     const byCode = new Map(data.map.nodes.map((n) => [asKey(n.code), n]));
@@ -104,6 +128,7 @@ app.patch('/api/map', (req, res) => {
     const merged = {
       map: {
         maxNeighborDistance: body.map.maxNeighborDistance,
+        bounds: nextBounds,
         nodes: Array.from(byCode.values()),
         edges: data.map.edges,
       },
@@ -139,7 +164,12 @@ app.patch('/api/map', (req, res) => {
     }
 
     writeMap(merged);
-    res.json({ ok: true, nodes: merged.map.nodes.length, edges: merged.map.edges.length });
+    res.json({
+      ok: true,
+      map: merged.map,
+      nodes: merged.map.nodes.length,
+      edges: merged.map.edges.length,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to merge map data' });
@@ -220,17 +250,10 @@ app.put('/api/nodes/:code', (req, res) => {
     if (err) return res.status(400).json({ error: err });
 
     data.map.nodes[idx] = node;
-
-    try {
-      revalidateIncidentEdgesOrThrow(data, node.code);
-    } catch (e) {
-      // revert this node only
-      data.map.nodes[idx] = readMap().map.nodes[idx] || data.map.nodes[idx];
-      return res.status(400).json(e._edgeValidation || { error: String(e.message || e) });
-    }
+    const removedEdges = revalidateIncidentEdgesAndPrune(data, node.code);
 
     writeMap(data);
-    res.json({ ok: true, node });
+    res.json({ ok: true, node, removedEdges, edges: data.map.edges });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update node' });
@@ -251,16 +274,10 @@ app.patch('/api/nodes/:code', (req, res) => {
     if (err) return res.status(400).json({ error: err });
 
     data.map.nodes[idx] = next;
-
-    try {
-      revalidateIncidentEdgesOrThrow(data, next.code);
-    } catch (e) {
-      data.map.nodes[idx] = readMap().map.nodes[idx] || data.map.nodes[idx];
-      return res.status(400).json(e._edgeValidation || { error: String(e.message || e) });
-    }
+    const removedEdges = revalidateIncidentEdgesAndPrune(data, next.code);
 
     writeMap(data);
-    res.json({ ok: true, node: next });
+    res.json({ ok: true, node: next, removedEdges, edges: data.map.edges });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to patch node' });
@@ -337,11 +354,12 @@ app.delete('/api/edges', (req, res) => {
   res.json({ ok: true });
 });
 
-const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || '127.0.0.1';
+const PORT = Number(process.env.PORT || 5000);
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`\nServer is running on http://localhost:${PORT}\n`);
+  app.listen(PORT, HOST, () => {
+    console.log(`\nServer is running on http://${HOST}:${PORT}\n`);
   });
 }
 

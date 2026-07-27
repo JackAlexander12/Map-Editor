@@ -1,5 +1,9 @@
 import axios from 'axios';
-const BASE = 'http://localhost:5000';
+const API_HOST =
+  typeof window !== 'undefined' && window.location?.hostname
+    ? window.location.hostname
+    : 'localhost';
+const BASE = `http://${API_HOST}:5000`;
 
 export const api = {
   ping: () => axios.get(`${BASE}/works`).then(r => r.data),

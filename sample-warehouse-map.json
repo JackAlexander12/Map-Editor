@@ -1,0 +1,101 @@
+{
+  "map": {
+    "maxNeighborDistance": 2000,
+    "bounds": {
+      "minX": 0,
+      "minY": 0,
+      "maxX": 8000,
+      "maxY": 5000
+    },
+    "nodes": [
+      {
+        "x": 1000,
+        "y": 1000,
+        "code": 1001,
+        "name": "Inbound A",
+        "directions": ["East", "South"],
+        "chute": { "direction": "South" }
+      },
+      {
+        "x": 3000,
+        "y": 1000,
+        "code": 1002,
+        "name": "Transfer 1",
+        "directions": ["West", "East"]
+      },
+      {
+        "x": 5000,
+        "y": 1000,
+        "code": 1003,
+        "name": "Transfer 2",
+        "directions": ["West", "East", "South"]
+      },
+      {
+        "x": 7000,
+        "y": 1000,
+        "code": 1004,
+        "name": "Outbound A",
+        "directions": ["West", "South"],
+        "chute": { "direction": "South" }
+      },
+      {
+        "x": 1000,
+        "y": 3000,
+        "code": 2001,
+        "name": "Service Bay",
+        "directions": ["North", "East"]
+      },
+      {
+        "x": 3000,
+        "y": 3000,
+        "code": 2002,
+        "name": "Center Junction",
+        "directions": ["North", "South", "East", "West"]
+      },
+      {
+        "x": 5000,
+        "y": 3000,
+        "code": 2003,
+        "name": "Pick Zone",
+        "directions": ["North", "West", "East"]
+      },
+      {
+        "x": 7000,
+        "y": 3000,
+        "code": 2004,
+        "name": "Packout",
+        "directions": ["North", "West", "South"]
+      },
+      {
+        "x": 3000,
+        "y": 5000,
+        "code": 3001,
+        "name": "Charge Station",
+        "directions": ["North", "East"],
+        "charger": { "direction": "North" }
+      },
+      {
+        "x": 5000,
+        "y": 5000,
+        "code": 3002,
+        "name": "Buffer Zone",
+        "directions": ["North", "West"]
+      }
+    ],
+    "edges": [
+      { "from": 1001, "to": 1002 },
+      { "from": 1001, "to": 2001 },
+      { "from": 1002, "to": 1003 },
+      { "from": 1002, "to": 2002 },
+      { "from": 1003, "to": 1004 },
+      { "from": 1003, "to": 2003 },
+      { "from": 1004, "to": 2004 },
+      { "from": 2001, "to": 2002 },
+      { "from": 2002, "to": 2003 },
+      { "from": 2002, "to": 3001 },
+      { "from": 2003, "to": 2004 },
+      { "from": 2003, "to": 3002 },
+      { "from": 3001, "to": 3002 }
+    ]
+  }
+}

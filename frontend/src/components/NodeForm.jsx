@@ -7,13 +7,15 @@ export default function NodeForm({ initial, onSubmit, onCancel }) {
     x: 0,
     y: 0,
     code: '',
-    name: '',
+    name: null,
     directions: [],
     charger: undefined,
     chute: undefined,
   };
 
   const [form, setForm] = useState(empty);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (initial) {
@@ -21,7 +23,7 @@ export default function NodeForm({ initial, onSubmit, onCancel }) {
         x: initial.x ?? 0,
         y: initial.y ?? 0,
         code: initial.code ?? '',
-        name: initial.name ?? '',
+        name: initial.name ?? null,
         directions: Array.isArray(initial.directions) ? initial.directions : [],
         charger: initial.charger ?? undefined,
         chute: initial.chute ?? undefined,
@@ -29,6 +31,8 @@ export default function NodeForm({ initial, onSubmit, onCancel }) {
     } else {
       setForm(empty);
     }
+    setErrorMsg('');
+    setIsSubmitting(false);
   }, [initial?.code, initial?.x, initial?.y, initial?.name, initial?.charger?.direction, initial?.chute?.direction]);
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
@@ -42,14 +46,25 @@ export default function NodeForm({ initial, onSubmit, onCancel }) {
     else set({ chute: { direction: val } });
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
+    const trimmedName = typeof form.name === 'string' ? form.name.trim() : form.name;
     const payload = scrubOptional({
       ...form,
+      code: Number(form.code),
+      name: trimmedName || null,
       x: +form.x,
       y: +form.y,
     });
-    onSubmit(payload);
+    try {
+      setIsSubmitting(true);
+      await onSubmit(payload);
+    } catch (err) {
+      setErrorMsg(err?.message || 'Save failed');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const chargerValue = form.charger?.direction ?? 'NONE';
@@ -141,9 +156,16 @@ export default function NodeForm({ initial, onSubmit, onCancel }) {
       </div>
 
       <div className="flex gap-3 pt-2">
-        <Button variant="primary" type="submit">Save Node</Button>
-        <Button type="button" onClick={onCancel}>Cancel</Button>
+        <Button variant="primary" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Saving…' : 'Save Node'}
+        </Button>
+        <Button type="button" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
       </div>
+      {errorMsg && (
+        <div className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {errorMsg}
+        </div>
+      )}
     </form>
   );
 }

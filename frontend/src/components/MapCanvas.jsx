@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MM_PER_GRID, snap, rotatePoint90, k } from '../lib';
 
 const ZOOM_MAX = 5;
@@ -13,6 +13,8 @@ const MIN_ARROW_PX = 24;
 const CHARGER_MAX_MM = 10000; // 10 m 
 const CHUTE_MAX_MM = 7000;  // 7m 
 const EXTEND_PX_IF_BOTH = 12; 
+const DRAG_THRESHOLD_PX = 4;
+const NODE_HIT_TARGET_PX = 56;
 
 export default function MapCanvas({
   nodes, edges, onDragNode, onAddNodeAt, onCreateEdge,
@@ -22,11 +24,24 @@ export default function MapCanvas({
 }) {
   const svgRef = useRef(null);
   const [dragNode, setDragNode] = useState(null);
-  const [dragRules, setDragRules] = useState(null);
   const [edgeStart, setEdgeStart] = useState(null);
   const [panDrag, setPanDrag] = useState(null);
   const [nodePress, setNodePress] = useState(null);
   const [mouseWorld, setMouseWorld] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (!dragNode) return;
+
+    const onKeyDown = (e) => {
+      if (e.key !== 'Escape') return;
+      onDragNode(dragNode.code, dragNode.nodeStart);
+      setDragNode(null);
+      setNodePress(null);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [dragNode, onDragNode]);
 
   const trPoint = (x, y) => (rotateView ? rotatePoint90({ x, y }) : { x, y });
   const view = useMemo(() => ({ scale: zoom, tx: origin.x, ty: origin.y }), [zoom, origin]);
@@ -142,44 +157,11 @@ export default function MapCanvas({
       return;
     }
 
-    const incident = edges.filter(e2 => String(e2.from) === String(n.code) || String(e2.to) === String(n.code));
-    if (incident.length) {
-      const neighbors = incident
-        .map(e2 =>
-          String(e2.from) === String(n.code)
-            ? nodes.find(v => String(v.code) === String(e2.to))
-            : nodes.find(v => String(v.code) === String(e2.from))
-        )
-        .filter(Boolean);
-
-      const verticalNs = neighbors.filter(nb => nb.x === n.x);
-      const horizontalNs = neighbors.filter(nb => nb.y === n.y);
-
-      const lockX = verticalNs.length ? verticalNs[0].x : null;      
-      const lockY = horizontalNs.length ? horizontalNs[0].y : null;  
-
-      const cap = Number.isFinite(maxNeighborDistance) ? maxNeighborDistance : Infinity;
-
-      let yRange = null;
-      if (verticalNs.length) {
-        let lo = -Infinity, hi = Infinity;
-        verticalNs.forEach(nb => { lo = Math.max(lo, nb.y - cap); hi = Math.min(hi, nb.y + cap); });
-        yRange = [lo, hi];
-      }
-
-      let xRange = null;
-      if (horizontalNs.length) {
-        let lo = -Infinity, hi = Infinity;
-        horizontalNs.forEach(nb => { lo = Math.max(lo, nb.x - cap); hi = Math.min(hi, nb.x + cap); });
-        xRange = [lo, hi];
-      }
-
-      setDragRules({ lockX, lockY, yRange, xRange });
-    } else {
-      setDragRules(null);
-    }
-
-    setDragNode({ code: n.code, start: screenToWorld(e.clientX, e.clientY) });
+    setDragNode({
+      code: n.code,
+      start: screenToWorld(e.clientX, e.clientY),
+      nodeStart: { x: n.x, y: n.y },
+    });
     setNodePress({ code: n.code, sx: e.clientX, sy: e.clientY, moved: false });
     e.stopPropagation();
   };
@@ -187,38 +169,23 @@ export default function MapCanvas({
   const onMouseMove = (e) => {
     if (dragNode && tool !== 'edge') {
       const now = screenToWorld(e.clientX, e.clientY);
-      const dx = snap(now.x - dragNode.start.x, MM_PER_GRID);
-      const dy = snap(now.y - dragNode.start.y, MM_PER_GRID);
+      const dx = now.x - dragNode.start.x;
+      const dy = now.y - dragNode.start.y;
 
       const n = nodes.find(v => k(v) === String(dragNode.code));
       if (n) {
-        let nx = snap(n.x + dx, MM_PER_GRID);
-        let ny = snap(n.y + dy, MM_PER_GRID);
+        const nx = dragNode.nodeStart.x + dx;
+        const ny = dragNode.nodeStart.y + dy;
 
-        const hasLockX = dragRules?.lockX != null;
-        const hasLockY = dragRules?.lockY != null;
-        if (hasLockX) nx = dragRules.lockX;
-        if (hasLockY) ny = dragRules.lockY;
-
-        if (dragRules?.yRange) {
-          const [lo, hi] = dragRules.yRange;
-          ny = Math.max(lo, Math.min(hi, ny));
+        if (n.x !== nx || n.y !== ny) {
+          onDragNode(dragNode.code, { x: nx, y: ny });
         }
-        if (dragRules?.xRange) {
-          const [lo, hi] = dragRules.xRange;
-          nx = Math.max(lo, Math.min(hi, nx));
-        }
-
-        ({ x: nx, y: ny } = clampToBounds(nx, ny));
-
-        onDragNode(dragNode.code, { x: nx, y: ny });
-        setDragNode({ ...dragNode, start: { x: now.x, y: now.y } });
       }
     }
 
     if (nodePress && !nodePress.moved) {
       const dpx = Math.hypot(e.clientX - nodePress.sx, e.clientY - nodePress.sy);
-      if (dpx > 3) setNodePress({ ...nodePress, moved: true });
+      if (dpx > DRAG_THRESHOLD_PX) setNodePress({ ...nodePress, moved: true });
     }
 
     setMouseWorld(screenToWorld(e.clientX, e.clientY));
@@ -229,14 +196,20 @@ export default function MapCanvas({
       onSelectNode(nodePress.code);
     }
     if (dragNode && typeof onDragNodeEnd === 'function') {
-      onDragNodeEnd(dragNode.code);
+      const snapped = clampToBounds(
+        snap(dragNode.nodeStart.x + (mouseWorld.x - dragNode.start.x), MM_PER_GRID),
+        snap(dragNode.nodeStart.y + (mouseWorld.y - dragNode.start.y), MM_PER_GRID)
+      );
+      onDragNode(dragNode.code, snapped);
+      onDragNodeEnd(dragNode.code, snapped, dragNode.nodeStart);
     }
     setDragNode(null);
     setNodePress(null);
-    setDragRules(null);
   };
   const BOX_MM = Math.max(BOX_MIN_MM, Math.min(BOX_MAX_MM, BOX_TARGET_PX / (view.scale || 1)));
   const HALF = BOX_MM / 2;
+  const HIT_BOX_MM = Math.max(BOX_MM * 1.6, NODE_HIT_TARGET_PX / (view.scale || 1));
+  const HIT_HALF = HIT_BOX_MM / 2;
 
   const minArrowMm = MIN_ARROW_PX / (view.scale || 1);
   const BASE_ARROW_MM = Math.max(minArrowMm, BOX_MM * 0.7);
@@ -254,12 +227,21 @@ export default function MapCanvas({
   };
 
   const edgePreview = edgeStart ? { from: edgeStart, to: mouseWorld } : null;
+  const canvasCursor =
+    tool === 'pan'
+      ? (panDrag ? 'grabbing' : 'grab')
+      : tool === 'edge'
+        ? 'crosshair'
+        : tool === 'add'
+          ? 'copy'
+          : 'default';
 
   return (
     <div className="relative w-full h-full overflow-hidden">
       <svg
         ref={svgRef}
-        className="w-full h-full bg-white cursor-crosshair select-none"
+        className="w-full h-full bg-white select-none"
+        style={{ cursor: canvasCursor }}
         onWheel={onWheel}
         onMouseMove={(e) => { onMouseMove(e); onBackgroundMouseMove(e); }}
         onMouseUp={() => { onMouseUp(); onBackgroundMouseUp(); }}
@@ -332,8 +314,16 @@ export default function MapCanvas({
                 transform={`translate(${p.x},${p.y})`}
                 onMouseDown={(e) => startNodeInteraction(n, e)}
                 className="select-none"
+                style={{ cursor: dragNode?.code === n.code ? 'grabbing' : 'grab' }}
               >
-                <rect x={-BOX_MM * 0.8} y={-BOX_MM * 0.8} width={BOX_MM * 1.6} height={BOX_MM * 1.6} fill="transparent" />
+                <rect
+                  x={-HIT_HALF}
+                  y={-HIT_HALF}
+                  width={HIT_BOX_MM}
+                  height={HIT_BOX_MM}
+                  fill="transparent"
+                  pointerEvents="all"
+                />
 
                
                 {chargerVec && (
@@ -361,10 +351,11 @@ export default function MapCanvas({
                   stroke="white"
                   strokeWidth={2}
                   vectorEffect="non-scaling-stroke"
+                  pointerEvents="none"
                 />
 
                 {isCharger && (
-                  <g transform={`scale(${BOX_MM / 22})`}>
+                  <g transform={`scale(${BOX_MM / 22})`} pointerEvents="none">
                     <path d="M -4 -8 L 2 -8 L 0 0 L 6 0 L -1 10 L 0 2 L -6 2 Z" fill="white" />
                   </g>
                 )}
@@ -394,6 +385,17 @@ export default function MapCanvas({
       >
         <ScaleBar zoom={view.scale} />
       </div>
+      {dragNode && (
+        <div className="pointer-events-none absolute left-3 top-16 rounded-lg bg-slate-950/85 px-3 py-2 text-xs text-slate-100 shadow-lg">
+          Dragging node. Press Esc to cancel and restore its original position.
+        </div>
+      )}
+      {!dragNode && tool !== 'pan' && (
+        <div className="pointer-events-none absolute left-3 top-16 rounded-lg bg-slate-950/85 px-3 py-2 text-xs text-slate-100 shadow-lg">
+          {tool === 'add' && 'Add Node mode: click once on the map to place a node.'}
+          {tool === 'edge' && 'Add Edge mode: click a start node, then an end node. Press Esc to cancel.'}
+        </div>
+      )}
     </div>
   );
 }

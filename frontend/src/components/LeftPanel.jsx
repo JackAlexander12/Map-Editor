@@ -20,28 +20,38 @@ export default function LeftPanel({
 
   return (
     <>
-
       <aside
-        className={[
-          'fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-white border-r shadow-lg z-40',
-          'transform transition-transform duration-300',
-          isOpen ? 'translate-x-0' : '-translate-x-full',
-          'flex flex-col',
-        ].join(' ')}
+        className="fixed left-3 top-16 z-40 overflow-hidden rounded-[26px] border border-gray-300 bg-white/96 backdrop-blur-sm transition-[width,height] duration-300 ease-out"
+        style={{
+          width: isOpen ? '20rem' : '10.5rem',
+          height: isOpen ? 'calc(100% - 4.75rem)' : '3.25rem',
+          maxWidth: '85vw',
+          willChange: 'width, height',
+        }}
         aria-hidden={!isOpen}
       >
-        <div className="h-12 flex items-center justify-between px-3 border-b bg-white">
-          <div className="font-semibold text-sm text-[#ea6300]">Map Items</div>
+        <div className={`flex items-center justify-between ${isOpen ? 'px-4 py-2' : 'px-0 py-0'}`}>
           <button
             onClick={onToggle}
-            className="rounded-md px-2 py-1 text-sm text-gray-600 hover:bg-gray-100"
-            aria-label="Close left panel"
-            title="Close"
+            className={`flex items-center gap-2 border border-[#d55a00] bg-[#ea6300] text-sm font-medium text-white transition-colors hover:bg-[#ff7a1a] ${
+              isOpen
+                ? 'h-9 rounded-full px-3'
+                : 'h-[3.25rem] w-full justify-center rounded-full px-4'
+            }`}
+            aria-label={isOpen ? 'Hide left panel' : 'Open left panel'}
+            title={isOpen ? 'Hide panel' : 'Open panel'}
           >
-            ✕
+            <span className="leading-none">{isOpen ? '−' : '+'}</span>
+            <span>Map Items</span>
           </button>
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <div
+          className="h-[calc(100%-3.25rem)] min-h-0 overflow-y-auto overflow-x-hidden px-3 pb-4 transition-opacity duration-200"
+          style={{
+            opacity: isOpen ? 1 : 0,
+            pointerEvents: isOpen ? 'auto' : 'none',
+          }}
+        >
           <SectionHeader
             title={`Nodes (${nodeItems.length})`}
             open={showNodes}
@@ -99,17 +109,6 @@ export default function LeftPanel({
           )}
         </div>
       </aside>
-
-      {!isOpen && (
-        <button
-          onClick={onToggle}
-          className="fixed left-0 top-16 z-30 h-10 w-5 rounded-r-full bg-[#ea6300] hover:bg-[#ff7a1a] shadow text-white"
-          title="Open panel"
-          aria-label="Open left panel"
-        >
-          ▸
-        </button>
-      )}
     </>
   );
 }

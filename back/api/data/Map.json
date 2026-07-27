@@ -1,251 +1,193 @@
 {
   "map": {
-    "maxNeighborDistance": 200000,
+    "maxNeighborDistance": 2000,
     "bounds": {
       "minX": 0,
       "minY": 0,
-      "maxX": 200000,
-      "maxY": 500000
+      "maxX": 8000,
+      "maxY": 5000
     },
     "nodes": [
       {
-        "x": 25000,
-        "y": 50000,
-        "code": "2001",
-        "name": "N1"
-      },
-      {
-        "x": 75000,
-        "y": 50000,
-        "code": "2002",
-        "name": "N2"
-      },
-      {
-        "x": 125000,
-        "y": 50000,
-        "code": "2003",
-        "name": "N3"
-      },
-      {
-        "x": 175000,
-        "y": 50000,
-        "code": "2004",
-        "name": "North Dock",
-        "charger": {
-          "direction": "North"
-        },
-        "chute": {
-          "direction": "North"
-        }
-      },
-      {
-        "x": 25000,
-        "y": 200000,
-        "code": "2005",
-        "name": "Aisle A",
-        "chute": {
-          "direction": "West"
-        }
-      },
-      {
-        "x": 75000,
-        "y": 200000,
-        "code": "2006",
-        "name": "Aisle B"
-      },
-      {
-        "x": 125000,
-        "y": 200000,
-        "code": "2007",
-        "name": "Aisle C"
-      },
-      {
-        "x": 175000,
-        "y": 200000,
-        "code": "2008",
-        "name": "Charge East",
-        "charger": {
-          "direction": "East"
-        }
-      },
-      {
-        "x": 25000,
-        "y": 350000,
-        "code": "2009",
-        "name": "Staging 1"
-      },
-      {
-        "x": 75000,
-        "y": 350000,
-        "code": "2010",
-        "name": "Staging 2"
-      },
-      {
-        "x": 125000,
-        "y": 350000,
-        "code": "2011",
-        "name": "Staging 3",
-        "charger": {
-          "direction": "South"
-        }
-      },
-      {
-        "x": 175000,
-        "y": 350000,
-        "code": "2012",
-        "name": "Staging 4"
-      },
-      {
-        "x": 25000,
-        "y": 500000,
-        "code": "2013",
-        "name": "Outbound S",
+        "x": 1000,
+        "y": 1000,
+        "code": 1001,
+        "name": "Inbound A",
+        "directions": [
+          "East",
+          "South"
+        ],
         "chute": {
           "direction": "South"
         }
       },
       {
-        "x": 75000,
-        "y": 500000,
-        "code": "2014",
-        "name": "Bay 2"
+        "x": 3000,
+        "y": 1000,
+        "code": 1002,
+        "name": "Transfer 1",
+        "directions": [
+          "West",
+          "East"
+        ]
       },
       {
-        "x": 125000,
-        "y": 500000,
-        "code": "2015",
-        "name": "Service W",
-        "charger": {
-          "direction": "West"
+        "x": 5000,
+        "y": 1000,
+        "code": 1003,
+        "name": "Transfer 2",
+        "directions": [
+          "West",
+          "East",
+          "South"
+        ]
+      },
+      {
+        "x": 7000,
+        "y": 1000,
+        "code": 1004,
+        "name": "Outbound A",
+        "directions": [
+          "West",
+          "South"
+        ],
+        "chute": {
+          "direction": "South"
         }
       },
       {
-        "x": 175000,
-        "y": 500000,
-        "code": "2016",
-        "name": "Bay 4"
+        "x": 1000,
+        "y": 3000,
+        "code": 2001,
+        "name": "Service Bay",
+        "directions": [
+          "North",
+          "East"
+        ]
+      },
+      {
+        "x": 3000,
+        "y": 3000,
+        "code": 2002,
+        "name": "Center Junction",
+        "directions": [
+          "North",
+          "South",
+          "East",
+          "West"
+        ]
+      },
+      {
+        "x": 5000,
+        "y": 3000,
+        "code": 2003,
+        "name": "Pick Zone",
+        "directions": [
+          "North",
+          "West",
+          "East"
+        ]
+      },
+      {
+        "x": 7000,
+        "y": 3000,
+        "code": 2004,
+        "name": "Packout",
+        "directions": [
+          "North",
+          "West",
+          "South"
+        ]
+      },
+      {
+        "x": 3000,
+        "y": 5000,
+        "code": 3001,
+        "name": "Charge Station",
+        "directions": [
+          "North",
+          "East"
+        ],
+        "charger": {
+          "direction": "North"
+        }
+      },
+      {
+        "x": 5000,
+        "y": 5000,
+        "code": 3002,
+        "name": "Buffer Zone",
+        "directions": [
+          "North",
+          "West"
+        ]
       }
     ],
     "edges": [
       {
-        "from": "2001",
-        "to": "2002",
-        "length": 50000
+        "from": 1001,
+        "to": 1002,
+        "length": 2000
       },
       {
-        "from": "2002",
-        "to": "2003",
-        "length": 50000
+        "from": 1001,
+        "to": 2001,
+        "length": 2000
       },
       {
-        "from": "2003",
-        "to": "2004",
-        "length": 50000
+        "from": 1002,
+        "to": 1003,
+        "length": 2000
       },
       {
-        "from": "2005",
-        "to": "2006",
-        "length": 50000
+        "from": 1002,
+        "to": 2002,
+        "length": 2000
       },
       {
-        "from": "2006",
-        "to": "2007",
-        "length": 50000
+        "from": 1003,
+        "to": 1004,
+        "length": 2000
       },
       {
-        "from": "2007",
-        "to": "2008",
-        "length": 50000
+        "from": 1003,
+        "to": 2003,
+        "length": 2000
       },
       {
-        "from": "2009",
-        "to": "2010",
-        "length": 50000
+        "from": 1004,
+        "to": 2004,
+        "length": 2000
       },
       {
-        "from": "2010",
-        "to": "2011",
-        "length": 50000
+        "from": 2001,
+        "to": 2002,
+        "length": 2000
       },
       {
-        "from": "2011",
-        "to": "2012",
-        "length": 50000
+        "from": 2002,
+        "to": 2003,
+        "length": 2000
       },
       {
-        "from": "2013",
-        "to": "2014",
-        "length": 50000
+        "from": 2002,
+        "to": 3001,
+        "length": 2000
       },
       {
-        "from": "2014",
-        "to": "2015",
-        "length": 50000
+        "from": 2003,
+        "to": 2004,
+        "length": 2000
       },
       {
-        "from": "2015",
-        "to": "2016",
-        "length": 50000
+        "from": 2003,
+        "to": 3002,
+        "length": 2000
       },
       {
-        "from": "2001",
-        "to": "2005",
-        "length": 150000
-      },
-      {
-        "from": "2005",
-        "to": "2009",
-        "length": 150000
-      },
-      {
-        "from": "2009",
-        "to": "2013",
-        "length": 150000
-      },
-      {
-        "from": "2002",
-        "to": "2006",
-        "length": 150000
-      },
-      {
-        "from": "2006",
-        "to": "2010",
-        "length": 150000
-      },
-      {
-        "from": "2010",
-        "to": "2014",
-        "length": 150000
-      },
-      {
-        "from": "2003",
-        "to": "2007",
-        "length": 150000
-      },
-      {
-        "from": "2007",
-        "to": "2011",
-        "length": 150000
-      },
-      {
-        "from": "2011",
-        "to": "2015",
-        "length": 150000
-      },
-      {
-        "from": "2004",
-        "to": "2008",
-        "length": 150000
-      },
-      {
-        "from": "2008",
-        "to": "2012",
-        "length": 150000
-      },
-      {
-        "from": "2012",
-        "to": "2016",
-        "length": 150000
+        "from": 3001,
+        "to": 3002,
+        "length": 2000
       }
     ]
   }
