@@ -1,7 +1,3 @@
-Thank You
-
-I just wanted to sincerely say thank you to the development team for taking the time out of your Friday to meet and speak with me. I learned a lot about the company and what you all do, especially after speaking with the team and being given a tour of the facility. I was also shocked at how complex the robots and the algorithms for the robots could get. This project introduced me to new technologies such as Docker and Javascript tests (which had me in a chokehold for a bit). However, since then, I figured it out, and I was able to execute the project.
-
 AGV Map Editor — Project Overview
 
 This project is a full-stack AGV map editor that allows users to design, visualize, and validate warehouse layouts. It includes a React + Tailwind frontend for map editing and an Express backend for validation and data storage. The application saves and loads a map from Map.json.
@@ -167,8 +163,3 @@ Validation logic for edges and nodes
 File read/write behavior
 
 API route handling and integration
-
-Thank You
-
-I just wanted to say sincerely say thank you to the development team for taking the time out of your Friday to meet and speak with me. I learned a lot on Friday about the company and what you all do at the company especially after speaking with the team and being given a tour of the facility. I was shocked at how complex the robots and the algorithms for the robots could get.
-This project also introduced me to new technologies such as Docker and Javascript tests (which had me in a chokehold for a bit). However, since then I figured it out and I was able to execute the project.
